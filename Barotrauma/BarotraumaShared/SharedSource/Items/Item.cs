@@ -113,6 +113,10 @@ namespace Barotrauma
 
         private float condition;
 
+        private float allwaysStatusEffectCooldownTimer;
+        private float allwaysStatusEffectCooldownTimerOffset;
+        public static float allwaysStatusEffectCooldownLength = 0.2f;
+
         private bool inWater;
         private readonly bool hasWaterStatusEffects;
 
@@ -1798,10 +1802,29 @@ namespace Barotrauma
             GameMain.NetworkMember.CreateEntityEvent(this, new ItemStatusEventData());
         }
 
+        private float accumulatedDeltaTime = 0;
+
+        public void UpdateLater(float deltaTime, Camera cam)
+        {
+            // update now if equiped
+            if(parentInventory != null)
+            {
+                if(parentInventory.Owner is Character ch)
+                {
+                    Update(deltaTime, cam);
+                    return;
+                }
+            }
+            
+            accumulatedDeltaTime += deltaTime;
+        }
+
         private bool isActive = true;
 
         public override void Update(float deltaTime, Camera cam)
         {
+            deltaTime += accumulatedDeltaTime;
+            accumulatedDeltaTime = 0;
 #if SERVER
             if (!(Submarine is { Loading: true }))
             {
@@ -1828,8 +1851,19 @@ namespace Barotrauma
                 aiTarget.Update(deltaTime);
             }
 
-            ApplyStatusEffects(ActionType.Always, deltaTime, character: (parentInventory as CharacterInventory)?.Owner as Character);
-            ApplyStatusEffects(parentInventory == null ? ActionType.OnNotContained : ActionType.OnContained, deltaTime, character: (parentInventory as CharacterInventory)?.Owner as Character);
+            if(allwaysStatusEffectCooldownTimer <= 0)
+            {
+                float entireDt = allwaysStatusEffectCooldownLength + allwaysStatusEffectCooldownTimerOffset;
+                ApplyStatusEffects(ActionType.Always, entireDt, character: (parentInventory as CharacterInventory)?.Owner as Character);
+                ApplyStatusEffects(parentInventory == null ? ActionType.OnNotContained : ActionType.OnContained, entireDt, character: (parentInventory as CharacterInventory)?.Owner as Character);
+                allwaysStatusEffectCooldownTimerOffset = Rand.Range(0.1f, 0.3f) * allwaysStatusEffectCooldownLength;
+                allwaysStatusEffectCooldownTimer = allwaysStatusEffectCooldownLength + allwaysStatusEffectCooldownTimerOffset;
+            }
+            else
+            {
+                allwaysStatusEffectCooldownTimer -= deltaTime;
+            }
+            
 
             for (int i = 0; i < updateableComponents.Count; i++)
             {
@@ -2377,7 +2411,7 @@ namespace Barotrauma
 
             //use a coroutine to prevent infinite loops by creating a one 
             //frame delay if the "signal chain" gets too long
-            if (signal.stepsTaken > 10)
+            if (signal.stepsTaken > 7)
             {
                 //if there's an equal signal waiting to be sent
                 //to the same connection, don't add a new one

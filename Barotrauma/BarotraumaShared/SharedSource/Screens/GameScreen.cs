@@ -3,6 +3,8 @@
 using Microsoft.Xna.Framework;
 using System.Threading;
 using FarseerPhysics.Dynamics;
+using System.Diagnostics;
+using System.Collections.Concurrent;
 #if DEBUG && CLIENT
 using System;
 using Microsoft.Xna.Framework.Input;
@@ -103,9 +105,10 @@ namespace Barotrauma
         public override void Update(double deltaTime)
         {
 #if RUN_PHYSICS_IN_SEPARATE_THREAD
-            physicsTime += deltaTime;
-            lock (updateLock)
-            { 
+            
+            lock (GameMain.World)
+            {
+                worldTickRequests.Add(deltaTime);
 #endif
 
 
@@ -308,21 +311,30 @@ namespace Barotrauma
 
 #if RUN_PHYSICS_IN_SEPARATE_THREAD
             }
+            
 #endif
         }
 
         partial void UpdateProjSpecific(double deltaTime);
 
+        BlockingCollection<double> worldTickRequests = new BlockingCollection<double>();
+
         private void ExecutePhysics()
         {
             while (true)
             {
-                while (physicsTime >= Timing.Step)
+                double deltaTime = worldTickRequests.Take();
+                lock (GameMain.World)
                 {
-                    lock (updateLock)
+                    try
                     {
-                        GameMain.World.Step((float)Timing.Step);
-                        physicsTime -= Timing.Step;
+                        GameMain.World.Step((float)deltaTime);
+                    }
+                    catch (WorldLockedException e)
+                    {
+                        string errorMsg = "Attempted to modify the state of the physics simulation while a time step was running.";
+                        DebugConsole.ThrowError(errorMsg, e);
+                        GameAnalyticsManager.AddErrorEventOnce("GameScreen.Update:WorldLockedException" + e.Message, GameAnalyticsManager.ErrorSeverity.Critical, errorMsg);
                     }
                 }
             }

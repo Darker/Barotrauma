@@ -22,6 +22,13 @@ namespace Barotrauma
         private const int GapUpdateInterval = 4;
         private static int gapUpdateTimer;
 
+        // each frame, update every nth item
+        private const int ItemUpdateDivider = 4;
+        private static int itemUpdateCounter = 0;
+        // update power onle each nth frame
+        private const int PowerUpdateDivider = 2;
+        private static int powerUpdateCounter = PowerUpdateDivider - 1;
+
         /// <summary>
         /// List of upgrades this item has
         /// </summary>
@@ -594,10 +601,25 @@ namespace Barotrauma
             GameMain.PerformanceCounter.AddElapsedTicks("Update:MapEntity:Misc", sw.ElapsedTicks);
             sw.Restart();
 #endif
-            Powered.UpdatePower(deltaTime);
+            if(++powerUpdateCounter % PowerUpdateDivider == 0)
+                Powered.UpdatePower(deltaTime);
+
+            int index = 0;
+
             foreach (Item item in Item.ItemList)
             {
-                item.Update(deltaTime, cam);
+                if (index % ItemUpdateDivider == itemUpdateCounter)
+                    item.Update(deltaTime, cam);
+                else
+                    item.UpdateLater(deltaTime, cam);
+
+                ++index;
+            }
+
+            itemUpdateCounter++;
+            if(itemUpdateCounter >= ItemUpdateDivider)
+            {
+                itemUpdateCounter = 0;
             }
 
             UpdateAllProjSpecific(deltaTime);

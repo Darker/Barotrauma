@@ -321,6 +321,8 @@ namespace Barotrauma.Items.Components
             : base(item, element)
         {
             IsActive = true;
+
+            performanceStats = new TurretPerformance(this);
             
             foreach (var subElement in element.Elements())
             {
@@ -403,6 +405,46 @@ namespace Barotrauma.Items.Components
             }
 #endif
         }
+
+        private struct TurretPerformance
+        {
+            public float springStiffness;
+            public float springDamping;
+            public float rotationSpeed;
+            Character lastUser;
+            float updateTimer;
+            Turret owner;
+
+            public TurretPerformance(Turret owner) : this()
+            {
+                this.owner = owner;
+                lastUser = owner.user;
+                updateTimer = -0.001f;
+            }
+
+            public void Update(float deltaTime, Character currentUser)
+            {
+                updateTimer -= deltaTime;
+
+                if(updateTimer <= 0 || lastUser != currentUser)
+                {
+                    updateTimer = 0.6f + Rand.Range(0.0f, 0.2f);
+                    lastUser = currentUser;
+
+                    float degreeOfSuccess = currentUser == null ? 0.5f : owner.DegreeOfSuccess(currentUser);
+                    if (degreeOfSuccess < 0.5f) { degreeOfSuccess *= degreeOfSuccess; } //the ease of aiming drops quickly with insufficient skill levels
+                    springStiffness = MathHelper.Lerp(owner.SpringStiffnessLowSkill, owner.SpringStiffnessHighSkill, degreeOfSuccess);
+                    springDamping = MathHelper.Lerp(owner.SpringDampingLowSkill, owner.SpringDampingHighSkill, degreeOfSuccess);
+                    rotationSpeed = MathHelper.Lerp(owner.RotationSpeedLowSkill, owner.RotationSpeedHighSkill, degreeOfSuccess);
+                    if (owner.MaxChargeTime > 0)
+                    {
+                        rotationSpeed *= MathHelper.Lerp(1f, owner.FiringRotationSpeedModifier, MathUtils.EaseIn(owner.currentChargeTime / owner.MaxChargeTime));
+                    }
+                }
+            }
+        }
+
+        private TurretPerformance performanceStats;
 
         public override void Update(float deltaTime, Camera cam)
         {
@@ -489,15 +531,7 @@ namespace Barotrauma.Items.Components
                 targetRotation = (targetMidDiff < 0.0f) ? minRotation : maxRotation;
             }
 
-            float degreeOfSuccess = user == null ? 0.5f : DegreeOfSuccess(user);
-            if (degreeOfSuccess < 0.5f) { degreeOfSuccess *= degreeOfSuccess; } //the ease of aiming drops quickly with insufficient skill levels
-            float springStiffness = MathHelper.Lerp(SpringStiffnessLowSkill, SpringStiffnessHighSkill, degreeOfSuccess);
-            float springDamping = MathHelper.Lerp(SpringDampingLowSkill, SpringDampingHighSkill, degreeOfSuccess);
-            float rotationSpeed = MathHelper.Lerp(RotationSpeedLowSkill, RotationSpeedHighSkill, degreeOfSuccess);
-            if (MaxChargeTime > 0)
-            {
-                rotationSpeed *= MathHelper.Lerp(1f, FiringRotationSpeedModifier, MathUtils.EaseIn(currentChargeTime / MaxChargeTime));
-            }
+            performanceStats.Update(deltaTime, user);
 
             // Do not increase the weapons skill when operating a turret in an outpost level
             if (user?.Info != null && (GameMain.GameSession?.Campaign == null || !Level.IsLoadedFriendlyOutpost))
@@ -530,8 +564,8 @@ namespace Barotrauma.Items.Components
             }
 
             angularVelocity += 
-                (targetRotationDiff * springStiffness - angularVelocity * springDamping) * deltaTime;
-            angularVelocity = MathHelper.Clamp(angularVelocity, -rotationSpeed, rotationSpeed);
+                (targetRotationDiff * performanceStats.springStiffness - angularVelocity * performanceStats.springDamping) * deltaTime;
+            angularVelocity = MathHelper.Clamp(angularVelocity, -performanceStats.rotationSpeed, performanceStats.rotationSpeed);
 
             rotation += angularVelocity * deltaTime;
 

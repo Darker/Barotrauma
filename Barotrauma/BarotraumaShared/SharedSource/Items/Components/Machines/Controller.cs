@@ -160,9 +160,9 @@ namespace Barotrauma.Items.Components
                 || user.Removed
                 || !user.IsAnySelectedItem(item)
                 || item.ParentInventory != null
-                || !user.CanInteractWith(item) 
                 || (UsableIn == UseEnvironment.Water && !user.AnimController.InWater)
-                || (UsableIn == UseEnvironment.Air && user.AnimController.InWater))
+                || (UsableIn == UseEnvironment.Air && user.AnimController.InWater)
+                || !user.CanInteractWith(item))
             {
                 if (user != null)
                 {

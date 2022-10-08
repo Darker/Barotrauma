@@ -12,6 +12,7 @@ namespace Barotrauma.Items.Components
         private Vector2 detectOffset;
 
         private float updateTimer;
+        private bool lastStatus;
 
         [Flags]
         public enum TargetType
@@ -163,6 +164,9 @@ namespace Barotrauma.Items.Components
 
             //randomize update timer so all sensors aren't updated during the same frame
             updateTimer = Rand.Range(0.0f, UpdateInterval);
+
+            // Always send out a signal after loading the object
+            lastStatus = !MotionDetected;
         }
 
         public override void Load(ContentXElement componentElement, bool usePrefabValues, IdRemap idRemap)
@@ -177,9 +181,13 @@ namespace Barotrauma.Items.Components
 
         public override void Update(float deltaTime, Camera cam)
         {
-            string signalOut = MotionDetected ? Output : FalseOutput;
+            if (MotionDetected != lastStatus)
+            {
+                string signalOut = MotionDetected ? Output : FalseOutput;
+                lastStatus = MotionDetected;
 
-            if (!string.IsNullOrEmpty(signalOut)) { item.SendSignal(new Signal(signalOut, 1), "state_out"); }
+                if (!string.IsNullOrEmpty(signalOut)) { item.SendSignal(new Signal(signalOut, 1), "state_out"); }
+            }
 
             if (MotionDetected)
             {

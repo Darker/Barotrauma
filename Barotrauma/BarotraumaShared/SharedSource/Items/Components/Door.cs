@@ -67,6 +67,8 @@ namespace Barotrauma.Items.Components
 
         private bool isBroken;
 
+        private ThrottledSignalDispatch doorStatusSignal = new ThrottledSignalDispatch("state_out", 0.3f, 0.1f);
+
         public bool CanBeTraversed => (IsOpen || IsBroken) && !IsJammed && !IsStuck && !Impassable;
         
         public bool IsBroken
@@ -411,7 +413,7 @@ namespace Barotrauma.Items.Components
 
             //don't use the predicted state here, because it might set
             //other items to an incorrect state if the prediction is wrong
-            item.SendSignal(isOpen ? "1" : "0", "state_out");
+            doorStatusSignal.Send(item, isOpen ? "1" : "0", deltaTime);
         }
 
         partial void UpdateProjSpecific(float deltaTime);

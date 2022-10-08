@@ -2,6 +2,7 @@
   "profiles": {
     "WindowsClient": {
       "commandName": "Project",
+      "commandLineArgs": "-skipintro",
       "nativeDebugging": false
     },
     "MacClient": {

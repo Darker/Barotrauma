@@ -54,7 +54,7 @@ namespace Barotrauma
         /// </summary>
         public bool TargetOutposts;
 
-        private readonly float updateTargetsInterval = 1;
+        private readonly float updateTargetsInterval = 5;
         private readonly float updateMemoriesInverval = 1;
         private readonly float attackLimbSelectionInterval = 3;
         // Min priority for the memorized targets. The actual value fades gradually, unless kept fresh by selecting the target.

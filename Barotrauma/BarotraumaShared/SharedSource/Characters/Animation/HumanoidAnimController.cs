@@ -241,7 +241,7 @@ namespace Barotrauma
             if (MainLimb == null) { return; }
 
             levitatingCollider = !IsHanging;
-            ColliderIndex = Crouching && !swimming ? 1 : 0;
+            
             if ((character.SelectedItem?.GetComponent<Controller>()?.ControlCharacterPose ?? false) ||
                 (character.SelectedSecondaryItem?.GetComponent<Controller>()?.ControlCharacterPose ?? false) ||
                 character.SelectedSecondaryItem?.GetComponent<Ladder>() != null ||
@@ -250,9 +250,14 @@ namespace Barotrauma
                 Crouching = false;
                 ColliderIndex = 0;
             }
-            else if (!Crouching && ColliderIndex == 1) 
-            { 
-                Crouching = true; 
+            else
+            {
+                ColliderIndex = Crouching && !swimming ? 1 : 0;
+
+                if (!Crouching && ColliderIndex == 1)
+                {
+                    Crouching = true;
+                }
             }
 
             //stun (= disable the animations) if the ragdoll receives a large enough impact

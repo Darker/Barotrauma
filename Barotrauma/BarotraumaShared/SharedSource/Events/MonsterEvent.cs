@@ -555,39 +555,42 @@ namespace Barotrauma
                             }
                         }
 
-                        monster.Enabled = true;
-                        monster.DisabledByEvent = false;
-                        monster.AnimController.SetPosition(FarseerPhysics.ConvertUnits.ToSimUnits(pos));
-
-                        var eventManager = GameMain.GameSession.EventManager;
-                        if (eventManager != null)
+                        lock(GameMain.World)
                         {
-                            if (SpawnPosType.HasFlag(Level.PositionType.MainPath) || SpawnPosType.HasFlag(Level.PositionType.SidePath))
-                            {
-                                eventManager.CumulativeMonsterStrengthMain += monster.Params.AI.CombatStrength;
-                                eventManager.AddTimeStamp(this);
-                            }
-                            else if (SpawnPosType.HasFlag(Level.PositionType.Ruin))
-                            {
-                                eventManager.CumulativeMonsterStrengthRuins += monster.Params.AI.CombatStrength;
-                            }
-                            else if (SpawnPosType.HasFlag(Level.PositionType.Wreck))
-                            {
-                                eventManager.CumulativeMonsterStrengthWrecks += monster.Params.AI.CombatStrength;
-                            }
-                            else if (SpawnPosType.HasFlag(Level.PositionType.Cave))
-                            {
-                                eventManager.CumulativeMonsterStrengthCaves += monster.Params.AI.CombatStrength;
-                            }
-                        }
+	                        monster.Enabled = true;
+	                        monster.DisabledByEvent = false;
+	                        monster.AnimController.SetPosition(FarseerPhysics.ConvertUnits.ToSimUnits(pos));
 
-                        if (monster == monsters.Last())
-                        {
-                            spawnReady = true;
-                            //this will do nothing if the monsters have no swarm behavior defined, 
-                            //otherwise it'll make the spawned characters act as a swarm
-                            SwarmBehavior.CreateSwarm(monsters.Cast<AICharacter>());
-                            DebugConsole.NewMessage($"Spawned: {ToString()}. Strength: {StringFormatter.FormatZeroDecimal(monsters.Sum(m => m.Params.AI.CombatStrength))}.", Color.LightBlue, debugOnly: true);
+                            var eventManager = GameMain.GameSession.EventManager;
+                            if (eventManager != null)
+                            {
+                                if (SpawnPosType.HasFlag(Level.PositionType.MainPath) || SpawnPosType.HasFlag(Level.PositionType.SidePath))
+                                {
+                                    eventManager.CumulativeMonsterStrengthMain += monster.Params.AI.CombatStrength;
+                                    eventManager.AddTimeStamp(this);
+                                }
+                                else if (SpawnPosType.HasFlag(Level.PositionType.Ruin))
+                                {
+                                    eventManager.CumulativeMonsterStrengthRuins += monster.Params.AI.CombatStrength;
+                                }
+                                else if (SpawnPosType.HasFlag(Level.PositionType.Wreck))
+                                {
+                                    eventManager.CumulativeMonsterStrengthWrecks += monster.Params.AI.CombatStrength;
+                                }
+                                else if (SpawnPosType.HasFlag(Level.PositionType.Cave))
+                                {
+                                    eventManager.CumulativeMonsterStrengthCaves += monster.Params.AI.CombatStrength;
+                                }
+                            }
+
+                            if (monster == monsters.Last())
+                            {
+                                spawnReady = true;
+                                //this will do nothing if the monsters have no swarm behavior defined, 
+                                //otherwise it'll make the spawned characters act as a swarm
+                                SwarmBehavior.CreateSwarm(monsters.Cast<AICharacter>());
+                                DebugConsole.NewMessage($"Spawned: {ToString()}. Strength: {StringFormatter.FormatZeroDecimal(monsters.Sum(m => m.Params.AI.CombatStrength))}.", Color.LightBlue, debugOnly: true);
+                            }
                         }
 
                         if (GameMain.GameSession != null)

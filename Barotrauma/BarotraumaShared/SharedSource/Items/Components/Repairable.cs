@@ -15,6 +15,8 @@ namespace Barotrauma.Items.Components
 
         private float deteriorationTimer;
         private float deteriorateAlwaysResetTimer;
+        // This timer avoids sending a condition status signal every frame
+        ThrottledSignalDispatch conditionalSignalThrottle = new ThrottledSignalDispatch("condition_out", 0.5f, 0.2f);
 
         private int prevSentConditionValue;
         private string conditionSignal;
@@ -387,7 +389,7 @@ namespace Barotrauma.Items.Components
                 conditionSignal = prevSentConditionValue.ToString();
             }
 
-            item.SendSignal(conditionSignal, "condition_out");
+            conditionalSignalThrottle.Send(item, conditionSignal, deltaTime);
 
             if (CurrentFixer == null)
             {

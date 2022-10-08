@@ -900,8 +900,17 @@ namespace Barotrauma
 #endif
                 }
 
+                try
+                {
                 CoroutineManager.Update(Paused, (float)Timing.Step);
-
+                }
+                catch (WorldLockedException e)
+                {
+                    string errorMsg = "Attempted to modify the state of the physics simulation while a time step was running.";
+                    DebugConsole.ThrowError(errorMsg, e);
+                    GameAnalyticsManager.AddErrorEventOnce("GameScreen.Update:WorldLockedException" + e.Message, GameAnalyticsManager.ErrorSeverity.Critical, errorMsg);
+                }
+                
                 SteamManager.Update((float)Timing.Step);
 
                 TaskPool.Update();
